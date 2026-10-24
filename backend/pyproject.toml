@@ -1,0 +1,11 @@
+[project]
+name = "diario-di-bordo"
+version = "0.1.0"
+description = "Backend del Diario di Bordo"
+requires-python = ">=3.11"
+license = "GPL-3.0-or-later"
+
+[tool.pytest.ini_options]
+pythonpath = ["."]
+testpaths = ["tests"]
+addopts = "-q"

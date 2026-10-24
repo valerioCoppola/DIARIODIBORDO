@@ -1,0 +1,122 @@
+{
+    "$defs": {
+        "ActionItem": {
+            "additionalProperties": false,
+            "properties": {
+                "descrizione": {
+                    "maxLength": 1000,
+                    "minLength": 1,
+                    "title": "Descrizione",
+                    "type": "string"
+                },
+                "responsabile": {
+                    "anyOf": [
+                        {
+                            "maxLength": 200,
+                            "type": "string"
+                        },
+                        {
+                            "type": "null"
+                        }
+                    ],
+                    "default": null,
+                    "title": "Responsabile"
+                },
+                "scadenza": {
+                    "anyOf": [
+                        {
+                            "maxLength": 100,
+                            "type": "string"
+                        },
+                        {
+                            "type": "null"
+                        }
+                    ],
+                    "default": null,
+                    "title": "Scadenza"
+                }
+            },
+            "required": [
+                "descrizione"
+            ],
+            "title": "ActionItem",
+            "type": "object"
+        },
+        "Categoria": {
+            "enum": [
+                "Lavoro",
+                "Idea",
+                "Riassunto giornata",
+                "Riflessione",
+                "Personale",
+                "Altro"
+            ],
+            "title": "Categoria",
+            "type": "string"
+        }
+    },
+    "additionalProperties": false,
+    "description": "La nota nel formato canonico di esportazione.",
+    "properties": {
+        "titolo": {
+            "maxLength": 120,
+            "minLength": 1,
+            "title": "Titolo",
+            "type": "string"
+        },
+        "data_ora": {
+            "anyOf": [
+                {
+                    "format": "date-time",
+                    "type": "string"
+                },
+                {
+                    "type": "null"
+                }
+            ],
+            "default": null,
+            "title": "Data Ora"
+        },
+        "categoria": {
+            "$ref": "#/$defs/Categoria",
+            "default": "Altro"
+        },
+        "tag": {
+            "items": {
+                "type": "string"
+            },
+            "maxItems": 5,
+            "title": "Tag",
+            "type": "array"
+        },
+        "executive_summary": {
+            "items": {
+                "type": "string"
+            },
+            "maxItems": 3,
+            "minItems": 3,
+            "title": "Executive Summary",
+            "type": "array"
+        },
+        "action_items": {
+            "items": {
+                "$ref": "#/$defs/ActionItem"
+            },
+            "title": "Action Items",
+            "type": "array"
+        },
+        "trascrizione_grezza": {
+            "minLength": 1,
+            "title": "Trascrizione Grezza",
+            "type": "string"
+        }
+    },
+    "required": [
+        "titolo",
+        "executive_summary",
+        "trascrizione_grezza"
+    ],
+    "title": "Diario di Bordo \u2014 Nota",
+    "type": "object",
+    "$schema": "https://json-schema.org/draft/2020-12/schema"
+}

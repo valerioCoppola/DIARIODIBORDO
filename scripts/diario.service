@@ -1,0 +1,23 @@
+# Modello del servizio systemd utente del Diario di Bordo.
+# Non copiarlo a mano: scripts/installa-servizio.sh sostituisce @ROOT@ con la
+# cartella del progetto, lo installa in ~/.config/systemd/user/ e lo avvia.
+#
+# Log: journalctl --user -u diario -f
+
+[Unit]
+Description=Diario di Bordo
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+WorkingDirectory=@ROOT@
+ExecStart=@ROOT@/scripts/start.sh
+# All'accensione Docker può non essere ancora pronto: si riprova finché parte.
+Restart=always
+RestartSec=5
+UMask=0077
+NoNewPrivileges=true
+
+[Install]
+WantedBy=default.target

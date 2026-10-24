@@ -1,0 +1,26 @@
+# Database del Diario di Bordo: PostgreSQL 16 con pgvector.
+# Il backend gira fuori da Docker (in un venv) per poter usare la GPU
+# nelle fasi di trascrizione dell'Incremento 2.
+#
+#   docker compose up -d
+#
+services:
+  db:
+    image: pgvector/pgvector:pg16
+    container_name: diario-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: diario
+      POSTGRES_USER: diario
+      POSTGRES_PASSWORD: ${DB_ADMIN_PASSWORD:?Impostare DB_ADMIN_PASSWORD nel file .env}
+      POSTGRES_INITDB_ARGS: "--encoding=UTF8 --locale=C.UTF-8"
+    # Solo su localhost: il database non è raggiungibile dalla rete.
+    ports:
+      - "127.0.0.1:${DB_PORT:-54329}:5432"
+    volumes:
+      - ./data/postgres:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U diario -d diario"]
+      interval: 5s
+      timeout: 3s
+      retries: 20

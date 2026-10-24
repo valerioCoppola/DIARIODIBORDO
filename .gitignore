@@ -1,0 +1,29 @@
+# Segreti e dati personali: mai nel repository
+.env
+data/
+backups/
+# Copie di lavoro locali, impostazioni dell'editor e degli assistenti
+_da_eliminare/
+.claude/
+.vscode/
+.idea/
+*.tgz
+*.sql.gz
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+.venv-voci/
+.pytest_cache/
+
+# Node / Next.js
+frontend/node_modules/
+frontend/.next/
+frontend/out/
+frontend/next-env.d.ts
+frontend/tsconfig.tsbuildinfo
+
+# Sistema
+.DS_Store
+*.log

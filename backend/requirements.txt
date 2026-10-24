@@ -1,0 +1,14 @@
+fastapi==0.156.4
+uvicorn[standard]==0.54.0
+psycopg[binary,pool]==3.3.6
+psycopg-pool==3.3.3
+pydantic==2.13.5
+pydantic-settings==2.16.1
+argon2-cffi==25.1.0
+python-multipart==0.0.32
+# Incremento 2: trascrizione locale. av fissato: dalla 19 manca un'opzione usata
+# da faster-whisper 1.2.1 per decodificare l'audio (verificato nei test).
+faster-whisper==1.2.1
+ctranslate2==4.8.3
+av==18.1.0
+onnxruntime==1.31.0

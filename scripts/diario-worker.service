@@ -1,0 +1,25 @@
+# Modello del servizio systemd utente del worker (trascrizione e analisi).
+# Installato da scripts/installa-servizio.sh, che sostituisce @ROOT@.
+#
+# Log: journalctl --user -u diario-worker -f
+
+[Unit]
+Description=Diario di Bordo — elaborazione dei vocali
+After=network-online.target diario.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+WorkingDirectory=@ROOT@
+ExecStart=@ROOT@/scripts/worker.sh
+Restart=always
+RestartSec=10
+# Un vocale in lavorazione riprende dalla fase raggiunta: non serve attendere a lungo.
+TimeoutStopSec=30
+# Priorità bassa: il PC resta reattivo mentre trascrive.
+Nice=10
+UMask=0077
+NoNewPrivileges=true
+
+[Install]
+WantedBy=default.target
