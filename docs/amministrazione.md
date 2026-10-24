@@ -20,6 +20,11 @@ con Row Level Security, e vale anche per lui).
 
 Dall'app: scaffale → **Persone**.
 
+<p align="center">
+  <img src="img/schermate/persone.jpg" alt="La pagina Persone: inviti e account" width="240">
+  <img src="img/schermate/registrati.jpg" alt="Creare l'account con un codice d'invito" width="240">
+</p>
+
 | Vuoi… | Nell'app | Da riga di comando |
 |---|---|---|
 | Invitare qualcuno | *Crea un invito*: codice monouso valido 7 giorni e messaggio pronto da mandare | `app.cli invito --nota "per Marta" [--giorni 7]` |

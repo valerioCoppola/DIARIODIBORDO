@@ -30,6 +30,11 @@ Consenti il microfono quando lo chiede.
 
 ## Lo scaffale e i diari
 
+<p align="center">
+  <img src="img/schermate/scaffale.jpg" alt="Lo scaffale con quattro diari" width="240">
+  <img src="img/schermate/nastro.jpg" alt="Il nastro tirato giù: «Lascia: chiudo il diario»" width="240">
+</p>
+
 Dopo l'accesso compare lo **scaffale**: i tuoi diari, come quaderni di cuoio, l'ultimo
 usato per primo. Ognuno è un mondo a sé: archivio, mappa dei temi, domande, cose da fare
 e ricerca non passano mai da un diario all'altro. Puoi tenerne uno per tutto o uno per
@@ -49,6 +54,10 @@ Il colore della copertina è anche il cuoio intorno alla pagina: vedi sempre in 
 
 ## Registrare
 
+<p align="center">
+  <img src="img/schermate/registra.jpg" alt="Registrazione in corso" width="240">
+</p>
+
 1. Nel diario, sezione **Registra**, tocca il pulsante rosso e parla. Lo schermo resta acceso
    e l'audio viene salvato sul telefono ogni 5 secondi.
 2. *Pausa* / *Riprendi* quando vuoi; tocca di nuovo il pulsante rosso per terminare.
@@ -67,6 +76,11 @@ Il vocale va nel diario in cui l'hai registrato, anche se nel frattempo ne apri 
 
 ## L'archivio
 
+<p align="center">
+  <img src="img/schermate/archivio.jpg" alt="Archivio, vista Più recenti" width="240">
+  <img src="img/schermate/calendario.jpg" alt="Archivio, vista Calendario" width="240">
+</p>
+
 Due viste, la scelta resta per la volta dopo:
 
 - **Più recenti**: i vocali per giorno (Oggi, Ieri, …) con ora, titolo e prima frase.
@@ -75,6 +89,11 @@ Due viste, la scelta resta per la volta dopo:
   vocali; cambia mese con le frecce o scorrendo il dito.
 
 ## Le note
+
+<p align="center">
+  <img src="img/schermate/nota.jpg" alt="Una nota: titolo, temi, audio, appunti" width="240">
+  <img src="img/schermate/nota-appunti.jpg" alt="Appunti, una domanda da chiarire e la trascrizione" width="240">
+</p>
 
 Ogni vocale passa da *In coda per la trascrizione* a *Nota pronta*, di solito in pochi minuti
 (tutto gira sul PC, nessun servizio esterno). Nella nota trovi:
@@ -105,6 +124,11 @@ che lo dice; puoi sempre togliere o mettere la spunta a mano.
 
 ## La mappa dei temi
 
+<p align="center">
+  <img src="img/schermate/mappa.jpg" alt="La mappa dei temi ad arcipelago" width="240">
+  <img src="img/schermate/mappa-orto.jpg" alt="La scheda del tema Orto" width="240">
+</p>
+
 I temi nascono solo da ciò che racconti, senza categorie decise in anticipo. Un tema è una
 cosa che torna (un progetto, un luogo, una persona, un interesse); ogni argomento si colloca
 con un percorso dal più ampio al più specifico, per esempio *Orto › Pomodori › semina*.
@@ -125,6 +149,11 @@ con un percorso dal più ampio al più specifico, per esempio *Orto › Pomodori
   stessa cosa, unisce i doppioni. Non tocca i temi che hai corretto tu.
 
 ## Cerca o chiedi
+
+<p align="center">
+  <img src="img/schermate/cerca.jpg" alt="Ricerca per parola" width="240">
+  <img src="img/schermate/chiedi.jpg" alt="Risposta a una domanda, con le fonti" width="240">
+</p>
 
 Una sola casella. Mentre scrivi compaiono temi, cose da fare e note (per parole, anche in
 forme diverse, e per significato). Premi Invio o *Chiedi* per una risposta in italiano:

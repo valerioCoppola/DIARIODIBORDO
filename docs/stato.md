@@ -295,3 +295,7 @@ creava poi la cosa più ampia); il modello collocava senza dire quanto era sicur
   personali tolti; `.gitignore` per il repository.
 - **Licenza** GNU GPL v3 o successiva (`LICENSE`). Nei test i nomi di esempio sono tutti inventati
   (BoscoVivo, Valdirame, Borgoluce).
+- **Immagini** (`docs/img/`): apertura, «Come si usa», diari, schema di funzionamento, installazione,
+  Tailscale e una galleria di schermate, in chiaro e in scuro. Fatte su un diario dimostrativo con
+  persone e note inventate (motore finto dei test per l'analisi, embedding veri per la ricerca), mai
+  con dati reali.

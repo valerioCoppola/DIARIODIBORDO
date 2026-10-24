@@ -1,5 +1,9 @@
 # Diario di Bordo
 
+<p align="center">
+  <img src="docs/img/apertura.jpg" alt="Diario di Bordo: lo scaffale dei diari, una nota riordinata e la mappa dei temi, su tre telefoni" width="100%">
+</p>
+
 Un diario vocale personale che vive sul tuo PC. Registri dal telefono, l'audio arriva al PC,
 viene trascritto e riorganizzato in appunti, cose da fare e una mappa dei temi che cresce con
 ciò che racconti. Poi puoi cercare o fare domande in italiano ("cosa ho deciso col
@@ -19,6 +23,35 @@ lascia casa tua.
 - **Più persone** sullo stesso PC, su invito: ognuno vede solo i suoi diari.
 - **Raggiungibile ovunque** con Tailscale, senza aprire porte sul router.
 
+## Come si usa
+
+<p align="center"><img src="docs/img/uso.jpg" alt="Quattro passi: parli, il PC riordina, i temi crescono, chiedi" width="100%"></p>
+
+1. **Parli**: un tocco sul pulsante rosso. L'audio resta sul telefono finché il PC non l'ha ricevuto.
+2. **Il PC riordina**: in pochi minuti trovi la trascrizione e gli appunti per argomento, con
+   decisioni, domande aperte e cose da fare.
+3. **I temi crescono**: ogni argomento trova posto in una mappa che nasce da ciò che racconti.
+   Se il Diario non è sicuro di dove metterlo, te lo chiede.
+4. **Chiedi**: «cosa devo fare questa settimana?». La risposta rimanda al punto esatto dell'audio.
+
+Tutto il resto, pagina per pagina, è nella **[guida all'uso](docs/guida.md)**.
+
+## Più diari, più persone
+
+<p align="center"><img src="docs/img/diari.jpg" alt="Lo scaffale dei diari, il nastro segnalibro tirato giù per chiudere, la modalità scura" width="100%"></p>
+
+Ogni diario è un mondo a sé: archivio, mappa, cose da fare e ricerca non si mescolano. Per
+chiuderne uno **tira giù il nastro rosso** in cima alla pagina: torni allo scaffale, e il diario si
+riaprirà a quella pagina. Sullo stesso PC possono esserci più persone, ognuna con il suo account e i
+suoi diari: le inviti tu (vedi [sotto](#collegare-il-telefono-con-tailscale)).
+
+## Come funziona
+
+<p align="center"><img src="docs/img/schema.jpg" alt="Il telefono comunica con il PC attraverso Tailscale; sul PC girano servizio, elaborazione, database e archivio audio" width="100%"></p>
+
+<details>
+<summary>Dettagli tecnici</summary>
+
 ```
  telefono (PWA)  ──HTTPS via Tailscale──▶  PC: FastAPI (127.0.0.1:8000) + interfaccia Next.js
    registra, salva a pezzi,                   ├─▶ PostgreSQL 16 + pgvector (Docker, solo localhost)
@@ -28,6 +61,10 @@ lascia casa tua.
                                 ▶ analisi      Ollama (modello scelto in base alla scheda video)
                                 ▶ indice       embedding bge-m3 per la ricerca per significato
 ```
+
+Scelte e motivazioni in [docs/architettura.md](docs/architettura.md); sicurezza e isolamento tra
+persone e tra diari in [docs/sicurezza.md](docs/sicurezza.md).
+</details>
 
 ## Requisiti
 
@@ -42,6 +79,8 @@ lascia casa tua.
 Ollama, le librerie GPU e i modelli li installa lo script `scripts/prepara-ai.sh`.
 
 ## Installazione
+
+<p align="center"><img src="docs/img/installazione.jpg" alt="I quattro comandi dell'installazione con il loro output: setup, prepara-ai, installa-servizio, telefono" width="100%"></p>
 
 ```bash
 git clone <indirizzo-del-repository> diario-di-bordo
@@ -64,6 +103,49 @@ si vuole (salta quello che è già fatto):
 Ognuno dei passi 3–5 si può fare anche dopo, lanciando lo script corrispondente. Nessuno va
 lanciato con `sudo`: la password di amministratore viene chiesta solo dove serve.
 
+## Collegare il telefono con Tailscale
+
+<p align="center"><img src="docs/img/tailscale.jpg" alt="PC e telefono nella stessa rete privata Tailscale; come invitare altre persone" width="100%"></p>
+
+Il Diario non è su Internet: ascolta solo sul PC. [Tailscale](https://tailscale.com) crea una rete
+privata e cifrata tra i tuoi dispositivi (gratuita per uso personale) e fornisce l'HTTPS che il
+telefono chiede per usare il microfono. Nessuna porta da aprire sul router.
+
+**Sul PC**, una volta sola:
+
+```bash
+scripts/telefono.sh
+```
+
+Installa Tailscale se manca, ti fa accedere al tuo account (stampa un link da aprire), controlla
+che MagicDNS e i certificati HTTPS siano attivi (se no ti dice dove attivarli), pubblica il Diario
+**solo nella tua rete** e stampa l'indirizzo, del tipo `https://<nome-pc>.<rete>.ts.net`.
+Lo rivedi quando vuoi con `scripts/telefono.sh --stato`.
+
+**Sul telefono**:
+
+1. installa l'app **Tailscale** (App Store o Play Store) e accedi con lo **stesso account** del PC;
+2. lasciala sempre attiva: Android, *VPN sempre attiva*; iPhone, *VPN On Demand* nell'app;
+3. apri l'indirizzo `https://…ts.net` nel browser ed entra con utente e password del Diario;
+4. **aggiungilo alla schermata Home** (Safari: Condividi → *Aggiungi alla schermata Home*;
+   Chrome: ⋮ → *Aggiungi a schermata Home*) e consenti il microfono.
+
+Da quel momento funziona ovunque: a casa, in 4G/5G, su qualsiasi Wi-Fi, purché il PC sia acceso
+(`scripts/installa-servizio.sh` lo fa partire da solo all'accensione).
+
+**Altre persone**, ognuna con il suo telefono:
+
+1. nella [console di Tailscale](https://login.tailscale.com/admin/machines), menu `…` accanto al
+   PC → **Share…** → la sua email. Lei installa Tailscale con il **suo** account e accetta: vede
+   solo il tuo PC;
+2. nel Diario, scaffale → **Persone** → *Crea un invito*: il messaggio pronto contiene indirizzo e
+   codice;
+3. lei apre l'indirizzo, tocca *Hai un invito? Crea il tuo account* e sceglie nome utente e
+   password. I suoi diari li vede solo lei.
+
+Problemi e casi particolari (PC che va in sospensione, chiave Tailscale che scade, disco cifrato) in
+[docs/accesso-dal-telefono.md](docs/accesso-dal-telefono.md).
+
 ## Primi passi
 
 1. **Sul PC** apri <http://localhost:8000>; **sul telefono** l'indirizzo `https://…ts.net`
@@ -76,6 +158,31 @@ lanciato con `sudo`: la password di amministratore viene chiesta solo dove serve
 6. Vuoi far entrare qualcuno? Scaffale → **Persone** → *Crea un invito*.
 
 La guida completa è in **[docs/guida.md](docs/guida.md)**.
+
+## Galleria
+
+<table>
+  <tr>
+    <td align="center" width="25%"><img src="docs/img/schermate/registra.jpg" alt="Registrazione in corso"><br><sub>Registra</sub></td>
+    <td align="center" width="25%"><img src="docs/img/schermate/archivio.jpg" alt="Archivio per giorno"><br><sub>Archivio</sub></td>
+    <td align="center" width="25%"><img src="docs/img/schermate/calendario.jpg" alt="Archivio a calendario"><br><sub>Calendario</sub></td>
+    <td align="center" width="25%"><img src="docs/img/schermate/nota.jpg" alt="Una nota con audio e appunti"><br><sub>Nota</sub></td>
+  </tr>
+  <tr>
+    <td align="center"><img src="docs/img/schermate/nota-appunti.jpg" alt="Appunti e una domanda da chiarire"><br><sub>Appunti e domande</sub></td>
+    <td align="center"><img src="docs/img/schermate/mappa-orto.jpg" alt="La scheda di un tema sulla mappa"><br><sub>Scheda di un tema</sub></td>
+    <td align="center"><img src="docs/img/schermate/cerca.jpg" alt="Ricerca con le parole evidenziate"><br><sub>Cerca</sub></td>
+    <td align="center"><img src="docs/img/schermate/chiedi.jpg" alt="Risposta a una domanda con le fonti"><br><sub>Chiedi</sub></td>
+  </tr>
+  <tr>
+    <td align="center"><img src="docs/img/schermate/scaffale.jpg" alt="Lo scaffale dei diari"><br><sub>Scaffale</sub></td>
+    <td align="center"><img src="docs/img/schermate/persone.jpg" alt="Persone e inviti, per l'amministratore"><br><sub>Persone</sub></td>
+    <td align="center"><img src="docs/img/schermate/nota-scuro.jpg" alt="Una nota in modalità scura"><br><sub>Nota, al buio</sub></td>
+    <td align="center"><img src="docs/img/schermate/mappa-scuro.jpg" alt="La mappa in modalità scura"><br><sub>Mappa, al buio</sub></td>
+  </tr>
+</table>
+
+<sub>Persone, diari e note delle immagini sono inventati.</sub>
 
 ## Documentazione
 

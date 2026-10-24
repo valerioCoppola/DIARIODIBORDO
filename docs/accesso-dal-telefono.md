@@ -1,5 +1,7 @@
 # Accesso dal telefono, ovunque tu sia
 
+<p align="center"><img src="img/tailscale.jpg" alt="PC e telefono nella stessa rete privata Tailscale" width="100%"></p>
+
 Il Diario gira sul PC e ascolta solo su `127.0.0.1:8000`: nessuna porta aperta
 sul router, nessun indirizzo pubblico. Il telefono ci arriva con **Tailscale**,
 una rete privata cifrata tra i tuoi dispositivi: a casa, in 4G/5G o su
