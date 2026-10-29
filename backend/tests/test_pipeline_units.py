@@ -57,13 +57,18 @@ class _FakeModel:
         return iter([Segment(0, 1.5, " Prova di trascrizione.")]), _Info()
 
 
-def test_cuda_failure_falls_back_to_cpu(tmp_path):
+@pytest.mark.parametrize("errore", [
+    "Library libcublas.so.12 is not found or cannot be loaded",          # NVIDIA senza librerie CUDA
+    "HIP failed with error hipErrorOutOfMemory",                         # AMD senza memoria video
+    "libamdhip64.so.7: cannot open shared object file",                  # AMD senza librerie ROCm
+])
+def test_gpu_failure_falls_back_to_cpu(tmp_path, errore):
     created = []
 
     def factory(name, device, compute_type):
         created.append((name, device, compute_type))
         if device == "cuda":
-            return _FakeModel(RuntimeError("Library libcublas.so.12 is not found or cannot be loaded"))
+            return _FakeModel(RuntimeError(errore))
         return _FakeModel()
 
     f = tmp_path / "a.webm"
@@ -115,3 +120,11 @@ def test_decode_phone_formats(tmp_path, ext, codec):
                     "-ac", "1", "-c:a", codec, "-b:a", "48k", str(f)], check=True)
     audio = decode_audio(str(f), sampling_rate=16000)
     assert abs(len(audio) / 16000 - 3.0) < 0.2
+
+
+@pytest.mark.parametrize("vram,primo", [(24000, "mistral-small3.2:24b"), (16304, "ministral-3:14b"),
+                                        (8188, "ministral-3:8b"), (None, "ministral-3:3b")])
+def test_analysis_candidates_prefer_mistral(vram, primo):
+    from app.cli import candidati_analisi
+
+    assert candidati_analisi(vram)[0] == primo

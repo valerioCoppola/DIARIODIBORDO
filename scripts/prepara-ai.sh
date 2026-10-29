@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 # Prepara l'elaborazione locale dei vocali: tutto resta sul PC.
 #
-#   1. librerie Python della trascrizione (e quelle CUDA se c'è una GPU NVIDIA)
+#   1. librerie Python della trascrizione, per la scheda video presente: NVIDIA (CUDA),
+#      AMD (ROCm) o nessuna (CPU). Dopo un cambio di scheda basta rilanciare lo script.
 #   2. Ollama, il motore dei modelli di analisi, solo su localhost, impostato per
 #      usare poca memoria (contesto compresso, un modello alla volta)
 #   3. scelta del modello di analisi: il migliore che sta tutto nella scheda video
@@ -36,20 +37,14 @@ worker_attivo() {
     && systemctl --user is-enabled --quiet diario-worker 2>/dev/null
 }
 
+# shellcheck source=scripts/_gpu.sh
+source scripts/_gpu.sh
+
 say "1/6  Librerie per la trascrizione"
 "$ROOT/.venv/bin/pip" install -q --disable-pip-version-check -r backend/requirements.txt
-VRAM=""
-CUDA_VER=""
-if command -v nvidia-smi >/dev/null && nvidia-smi >/dev/null 2>&1; then
-  VRAM=$(nvidia-smi --query-gpu=memory.total --format=csv,noheader,nounits | sort -n | tail -1 | tr -dc 0-9)
-  GPU=$(nvidia-smi --query-gpu=name --format=csv,noheader | head -1)
-  CUDA_VER=$(nvidia-smi | grep -oE 'CUDA Version: [0-9]+\.[0-9]+' | grep -oE '[0-9]+\.[0-9]+' | head -1 || true)
-  echo "   GPU: $GPU, ${VRAM} MB (driver per CUDA ${CUDA_VER:-?}). Installo le librerie CUDA per la trascrizione…"
-  "$ROOT/.venv/bin/pip" install -q --disable-pip-version-check -r backend/requirements-gpu.txt
-  ok "librerie CUDA installate"
-else
-  warn "nessuna GPU NVIDIA utilizzabile (nvidia-smi assente o senza driver): la trascrizione userà la CPU, più lentamente"
-fi
+GPU=$(gpu_descrizione)
+[[ -n "$GPU" ]] && echo "   Scheda video: $GPU"
+installa_ctranslate2 || warn "la trascrizione userà la CPU finché il problema qui sopra non è risolto"
 ok "faster-whisper pronto"
 
 say "2/6  Ollama"
@@ -115,32 +110,28 @@ VOCI="$ROOT/.venv-voci"
 MODELLO_VOCI="$ROOT/data/modelli/pyannote-community-1"
 PY=$(command -v python3)
 if [[ ! -x "$VOCI/bin/python" ]] || ! "$VOCI/bin/python" -c "import pyannote.audio, torch" >/dev/null 2>&1; then
-  echo "   Preparo un ambiente a parte con pyannote (circa 3–5 GB, una volta sola)…"
+  # torch per la scheda presente (CUDA, ROCm o CPU): con ROCm sono circa 16 GB, con CUDA 5–8
+  torch_scelta
+  echo "   Preparo un ambiente a parte con pyannote e torch per $TORCH_MOTORE (diversi GB, una volta sola)…"
   "$PY" -m venv "$VOCI"
   "$VOCI/bin/pip" install -q --disable-pip-version-check --upgrade pip
-  # torch con le librerie CUDA giuste per il driver; senza GPU, la versione per CPU.
-  IDX=""
-  if [[ -n "$CUDA_VER" ]]; then
-    MAJ=${CUDA_VER%%.*}; MIN=${CUDA_VER#*.}
-    if   (( MAJ >= 13 ));                 then IDX=""
-    elif (( MAJ == 12 && MIN >= 8 ));     then IDX="https://download.pytorch.org/whl/cu128"
-    elif (( MAJ == 12 && MIN >= 6 ));     then IDX="https://download.pytorch.org/whl/cu126"
-    else IDX="https://download.pytorch.org/whl/cpu"; warn "driver NVIDIA vecchio: le voci useranno la CPU (aggiorna il driver per la GPU)"
-    fi
-  else
-    IDX="https://download.pytorch.org/whl/cpu"
-  fi
-  if [[ -n "$IDX" ]]; then
-    "$VOCI/bin/pip" install -q --disable-pip-version-check torch torchaudio --index-url "$IDX" \
-      || { warn "torch per la GPU non disponibile: uso la versione per CPU"
-           "$VOCI/bin/pip" install -q --disable-pip-version-check torch torchaudio --index-url https://download.pytorch.org/whl/cpu; }
-  else
-    "$VOCI/bin/pip" install -q --disable-pip-version-check torch torchaudio
-  fi
-  "$VOCI/bin/pip" install -q --disable-pip-version-check "pyannote.audio==4.0.7" numpy
+  IDX=()
+  [[ -n "$TORCH_IDX" ]] && IDX=(--index-url "$TORCH_IDX")
+  _gpu_pip "$VOCI/bin/pip" install -q torch torchaudio "${IDX[@]}" \
+    || { warn "torch per la scheda video non disponibile: uso la versione per CPU"
+         _gpu_pip "$VOCI/bin/pip" install -q torch torchaudio --index-url "$TORCH_CPU_INDEX"; }
+  _gpu_pip "$VOCI/bin/pip" install -q "pyannote.audio==4.0.7" numpy
 fi
+# Anche un ambiente già pronto va riallineato se la scheda è cambiata (es. NVIDIA → AMD)
+allinea_torch "$VOCI"
 INFO=$("$VOCI/bin/python" backend/voci_pyannote.py --verifica 2>/dev/null | tail -1 || true)
-[[ -n "$INFO" ]] && ok "pyannote pronto ($INFO)" || warn "pyannote non si avvia: rilancia questo script"
+if [[ -z "$INFO" ]]; then
+  warn "pyannote non si avvia: rilancia questo script"
+elif [[ "$INFO" == *'"errore_gpu": null'* || "$INFO" == *'"cuda": false'* ]]; then
+  ok "pyannote pronto ($INFO)"
+else
+  warn "pyannote pronto ma la scheda video non funziona, userà la CPU: $INFO"
+fi
 
 if [[ ! -f "$MODELLO_VOCI/config.yaml" ]]; then
   echo

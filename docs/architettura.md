@@ -2,7 +2,7 @@
 
 ## Assunzioni
 
-1. **Tutto in locale sul PC** (Linux, GPU NVIDIA, Ollama già presente). Nessun
+1. **Tutto in locale sul PC** (Linux, GPU NVIDIA o AMD, Ollama già presente). Nessun
    servizio cloud, nessun dato che esce dal PC. Scelta confermata dall'utente.
 2. **Più persone, più diari ciascuna** (migrazione `0007_diari_utenti.sql`). Ogni tabella di
    contenuto ha `owner_id` e `diario_id`; due politiche RLS, quella del proprietario e una
@@ -140,7 +140,10 @@ cui si era fermato (`failed_stage`), senza rifare le precedenti.
 
 **Trascrizione.** faster-whisper con modello scelto in base alla memoria
 video (large-v3 da 6 GB in su, large-v3-turbo sotto o su CPU), filtro dei
-silenzi (meno allucinazioni), lingua italiana. Se la GPU fallisce si passa
+silenzi (meno allucinazioni), lingua italiana. La GPU può essere NVIDIA
+(ctranslate2 da PyPI, CUDA) o AMD (ctranslate2 per ROCm dalle release del
+progetto, con le librerie ROCm di sistema): `scripts/_gpu.sh` installa la
+versione giusta per la scheda presente. Se la GPU fallisce si passa
 alla CPU da soli. Sotto i 16 GB di memoria video il modello viene scaricato
 dalla GPU dopo ogni vocale, per lasciare spazio al modello di analisi.
 `av` è fissato alla 18.1: dalla 19 manca un'opzione usata da faster-whisper
@@ -162,7 +165,13 @@ note per titolo e testo, segmenti per significato) fuse con la Reciprocal Rank
 Fusion. Se Ollama non risponde la ricerca resta testuale e lo dice.
 
 **Scelta dei modelli.** `scripts/prepara-ai.sh` sceglie il modello di analisi
-dalla memoria video (qwen3:14b da 20 GB, qwen3:8b da 8 GB, qwen3:4b sotto o
-senza GPU) e lo scrive in `.env`, dove si può cambiare. Qwen3 è multilingue e
-regge bene l'italiano; il ragionamento esplicito è disattivato (`think: false`)
-perché serve solo il JSON.
+dalla memoria video, preferendo i modelli Mistral a pesi aperti (Mistral Small 3.2
+da 22 GB, Ministral 3 14B da 14 GB, 8B da 7 GB, 3B sotto o senza GPU; Gemma 4 e
+Qwen 3.5 come riserva) e lo scrive in `.env`, dove si può cambiare. Il
+ragionamento esplicito è disattivato (`think: false`) perché serve solo il JSON.
+
+**Scheda video AMD.** La memoria si legge dal driver amdgpu in `/sys`
+(`app/pipeline/gpu.py`), senza programmi in più. Per pyannote serve torch per
+ROCm; sulle Radeon RDNA4 l'LSTM fallisce con MIOpen, quindi con ROCm torch usa la
+propria implementazione (`voci_pyannote.py`), sempre sulla GPU. La diagnosi
+prova proprio quell'LSTM, non solo se la GPU è visibile.

@@ -1,5 +1,6 @@
 # Librerie CUDA per faster-whisper sulla GPU NVIDIA (ctranslate2 4.x: CUDA 12, cuDNN 9).
 # Installate da scripts/prepara-ai.sh solo se c'è una GPU NVIDIA; scripts/worker.sh
-# le rende visibili al worker con LD_LIBRARY_PATH.
+# le rende visibili al worker con LD_LIBRARY_PATH. Con una GPU AMD servono invece
+# ctranslate2 per ROCm e le librerie ROCm di sistema: li installa scripts/_gpu.sh.
 nvidia-cublas-cu12==12.9.2.10
 nvidia-cudnn-cu12==9.27.0.42

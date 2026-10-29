@@ -1,5 +1,9 @@
 """Trascrizione locale con faster-whisper, sulla GPU se disponibile.
 
+GPU vuol dire NVIDIA (ctranslate2 da PyPI, con CUDA) oppure AMD (ctranslate2 per
+ROCm, installato da scripts/prepara-ai.sh). Per ctranslate2 in entrambi i casi il
+dispositivo si chiama "cuda".
+
 Scelta automatica di modello e precisione in base alla memoria video:
 
     GPU ≥ 10 GB   large-v3        float16
@@ -7,7 +11,7 @@ Scelta automatica di modello e precisione in base alla memoria video:
     GPU <  6 GB   large-v3-turbo  int8_float16
     senza GPU     large-v3-turbo  int8 su CPU (più lento, stessa qualità di turbo)
 
-Se la GPU fallisce (librerie CUDA mancanti, memoria esaurita) la trascrizione
+Se la GPU fallisce (librerie CUDA/ROCm mancanti, memoria esaurita) la trascrizione
 riparte da sola sulla CPU e lo segnala nei log: un vocale non resta bloccato
 per un problema di driver.
 
@@ -23,8 +27,6 @@ vengono suggeriti a Whisper come hotwords, in ogni finestra di 30 secondi.
 from __future__ import annotations
 
 import logging
-import shutil
-import subprocess
 import threading
 import time
 from dataclasses import dataclass
@@ -33,6 +35,7 @@ from typing import Any, Callable
 
 from ..config import Settings
 from .errors import PermanentError, ServiceUnavailable
+from .gpu import main_gpu
 
 log = logging.getLogger("diario.trascrizione")
 
@@ -40,7 +43,8 @@ PAUSE_PARAGRAPH_SECONDS = 2.5      # a capo comunque
 PAUSE_SENTENCE_SECONDS = 1.2       # a capo se la frase prima è finita
 PARAGRAPH_MAX_CHARS = 600          # oltre, a capo alla prima fine frase
 _FINE_FRASE = (".", "!", "?", "…")
-_CUDA_HINTS = ("cuda", "cublas", "cudnn", "out of memory", "libcu", "gpu")
+_CUDA_HINTS = ("cuda", "cublas", "cudnn", "out of memory", "libcu", "gpu",
+               "hiperror", "hipblas", "libhip", "rocm", "miopen", "libamdhip")
 
 
 @dataclass
@@ -104,17 +108,9 @@ def assemble(segments: list[Segment]) -> tuple[str, list[dict]]:
 
 
 def gpu_memory_mb() -> int | None:
-    """Memoria della prima GPU NVIDIA, se nvidia-smi c'è e risponde."""
-    exe = shutil.which("nvidia-smi")
-    if not exe:
-        return None
-    try:
-        out = subprocess.run([exe, "--query-gpu=memory.total", "--format=csv,noheader,nounits"],
-                             capture_output=True, text=True, timeout=10, check=True).stdout
-        values = [int(x.strip()) for x in out.splitlines() if x.strip().isdigit()]
-        return max(values) if values else None
-    except (OSError, subprocess.SubprocessError, ValueError):
-        return None
+    """Memoria della scheda video più capiente (NVIDIA o AMD), se ce n'è una."""
+    g = main_gpu()
+    return g.vram_mb if g else None
 
 
 def cuda_device_count() -> int:

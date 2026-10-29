@@ -254,22 +254,25 @@ def cmd_diagnosi(a: argparse.Namespace) -> None:
     import time
 
     from .config import get_settings
-    from .pipeline.analyze import ANALISI_SCHEMA
+    from .pipeline.analyze import RIORGANIZZA_SCHEMA
     from .pipeline.errors import PipelineError
     from .pipeline.ollama import OllamaClient
-    from .pipeline.transcribe import FasterWhisperTranscriber, cuda_device_count, gpu_memory_mb
+    from .pipeline.gpu import main_gpu
+    from .pipeline.transcribe import FasterWhisperTranscriber, cuda_device_count
 
     s = get_settings()
     bad = 0
     print("GPU")
-    vram, cuda = gpu_memory_mb(), cuda_device_count()
-    if vram:
-        _ok(f"NVIDIA, {vram} MB di memoria video; CUDA vista da ctranslate2: {'sì' if cuda else 'NO'}")
+    g, cuda = main_gpu(), cuda_device_count()
+    if g:
+        motore = "CUDA" if g.vendor == "NVIDIA" else "ROCm"
+        _ok(f"{g.vendor} {g.name}, {g.vram_mb} MB di memoria video; vista da ctranslate2 ({motore}): "
+            f"{'sì' if cuda else 'NO'}")
         if not cuda:
             bad += 1
-            _ko("ctranslate2 non vede la GPU: installa le librerie CUDA con scripts/prepara-ai.sh")
+            _ko(f"ctranslate2 non vede la GPU: rilancia scripts/prepara-ai.sh (installa la versione per {motore})")
     else:
-        print("  - nessuna GPU NVIDIA: la trascrizione userà la CPU (più lenta)")
+        print("  - nessuna GPU NVIDIA o AMD: la trascrizione userà la CPU (più lenta)")
 
     print("Trascrizione")
     t = FasterWhisperTranscriber(s)
@@ -314,7 +317,7 @@ def cmd_diagnosi(a: argparse.Namespace) -> None:
                 {"role": "system", "content": "Compila la scheda in JSON usando solo il testo."},
                 {"role": "user", "content": "Trascrizione:\n<<<\nDomani devo portare la macchina dal meccanico. "
                                             "Poi passo in banca. La sera cena da mia sorella.\n>>>"}],
-                ANALISI_SCHEMA, s.analysis_max_context)
+                RIORGANIZZA_SCHEMA, s.analysis_max_context)
             json.loads(res.content)
             _ok(f"analisi di prova in JSON valido in {time.monotonic() - t0:.1f} s")
             info = next((x for x in client.loaded() if x.get("name") in (s.ollama_model, f"{s.ollama_model}:latest")),
@@ -349,8 +352,13 @@ def cmd_diagnosi(a: argparse.Namespace) -> None:
             v = json.loads(p.stdout.strip().splitlines()[-1]) if p.returncode == 0 else None
         except Exception:
             v = None
-        if v:
-            _ok(f"pyannote pronto (torch {v['torch']}, {'scheda video' if v['cuda'] else 'solo CPU: più lento'})")
+        if v and v.get("errore_gpu"):
+            bad += 1
+            _ko(f"pyannote: la scheda video non funziona ({v['errore_gpu']}), userebbe la CPU: "
+                "rilancia scripts/prepara-ai.sh")
+        elif v:
+            dove = f"scheda video ({v.get('motore', 'CUDA')})" if v["cuda"] else "solo CPU: più lento"
+            _ok(f"pyannote pronto (torch {v['torch']}, {dove})")
         else:
             bad += 1
             _ko("l'ambiente delle voci non si avvia: rilancia scripts/prepara-ai.sh")
@@ -592,18 +600,19 @@ def _scrivi_env(chiave: str, valore: str) -> None:
 def candidati_analisi(vram_mb: int | None) -> list[str]:
     """Modelli di analisi dal migliore, per quanta memoria video c'è (ottobre 2026).
 
-    Con 8 GB nessun MoE recente ci sta intero (il più piccolo utile, gpt-oss:20b, ne pesa 13):
-    meglio un modello denso che resta tutto sulla scheda video. Qwen3.5 9B ha un'attenzione
-    ibrida che tiene piccola la memoria del contesto; Gemma 4 E4B è il ripiego più leggero.
+    Prima i modelli Mistral a pesi aperti (Apache 2.0): Ministral 3 in tre taglie, poi
+    Mistral Small 3.2 dove ci sta intero. Dopo, come riserva, Gemma 4 e Qwen 3.5.
+    Contano i modelli che restano tutti sulla scheda video insieme al contesto: con 16 GB
+    Mistral Small (15 GB) non ci sta, Ministral 14B (9 GB) sì.
     """
     v = vram_mb or 0
     if v >= 22000:
-        return ["qwen3.6:35b", "gemma4:26b", "qwen3.5:9b"]
+        return ["mistral-small3.2:24b", "ministral-3:14b", "gemma4:26b"]
     if v >= 14000:
-        return ["gemma4:12b", "qwen3.5:9b", "qwen3:8b"]
+        return ["ministral-3:14b", "gemma4:12b", "qwen3.5:9b"]
     if v >= 7000:
-        return ["qwen3.5:9b", "gemma4:e4b", "qwen3:8b"]
-    return ["qwen3.5:4b", "gemma4:e2b"]
+        return ["ministral-3:8b", "qwen3.5:9b", "gemma4:e4b"]
+    return ["ministral-3:3b", "qwen3.5:4b", "gemma4:e2b"]
 
 
 def cmd_scegli_modello(a: argparse.Namespace) -> None:

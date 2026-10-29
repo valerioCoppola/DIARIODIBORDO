@@ -20,9 +20,10 @@ ok()  { printf '   ✓ %s\n' "$*"; }
 
 say "1/4  Librerie Python"
 "$ROOT/.venv/bin/pip" install -q --disable-pip-version-check -r backend/requirements-dev.txt
-if command -v nvidia-smi >/dev/null && nvidia-smi >/dev/null 2>&1; then
-  "$ROOT/.venv/bin/pip" install -q --disable-pip-version-check -r backend/requirements-gpu.txt
-fi
+# ctranslate2 per la scheda presente (NVIDIA, AMD o CPU): requirements.txt porta quello di PyPI
+# shellcheck source=scripts/_gpu.sh
+source scripts/_gpu.sh
+installa_ctranslate2 || echo "   La trascrizione userà la CPU: per i dettagli lancia scripts/prepara-ai.sh"
 ok "aggiornate"
 
 say "2/4  Interfaccia"

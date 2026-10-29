@@ -70,13 +70,14 @@ persone e tra diari in [docs/sicurezza.md](docs/sicurezza.md).
 
 - **Linux** (sviluppato e provato su Ubuntu) con **Docker Engine** e il plugin `docker compose`
 - **Python 3.11+** e **Node.js 20+**
-- Consigliata una **GPU NVIDIA** (8 GB bastano) con i driver installati; senza, si usa la CPU,
-  più lentamente
+- Consigliata una **scheda video NVIDIA** (CUDA) **o AMD** (ROCm, es. Radeon RX 7000/9000): 8 GB
+  bastano; senza, si usa la CPU, più lentamente
 - Circa **10 GB** di spazio per i modelli
 - Per usarlo dal telefono: **[Tailscale](https://tailscale.com)** (gratuito per uso personale)
   su PC e telefono
 
-Ollama, le librerie GPU e i modelli li installa lo script `scripts/prepara-ai.sh`.
+Ollama, le librerie per la scheda video (CUDA o ROCm) e i modelli li installa lo script
+`scripts/prepara-ai.sh`. Se cambi scheda (per esempio da NVIDIA ad AMD) basta rilanciarlo.
 
 ## Installazione
 
@@ -195,20 +196,100 @@ La guida completa è in **[docs/guida.md](docs/guida.md)**.
 | [docs/sicurezza.md](docs/sicurezza.md) | Autenticazione, isolamento tra persone e tra diari, dove stanno i dati |
 | [docs/stato.md](docs/stato.md) | Storia dello sviluppo, cosa è stato provato |
 
-## Comandi principali
+## Comandi
 
-| Comando | A cosa serve |
-|---|---|
-| `scripts/setup.sh` | Prima installazione (ripetibile) |
-| `scripts/aggiorna.sh` | Dopo aver aggiornato il codice: librerie, interfaccia, copia del database, migrazioni, riavvio |
-| `scripts/backup.sh` / `scripts/ripristina.sh FILE` | Copia completa (database + audio) e ripristino |
-| `scripts/prepara-ai.sh` | Modelli di trascrizione, analisi e voci |
-| `scripts/telefono.sh --stato` | Indirizzo per il telefono e stato di Tailscale |
-| `systemctl --user status diario diario-worker` | Stato di servizio ed elaborazione |
-| `scripts/test.sh` | Test automatici (database temporaneo, non tocca i dati) |
+Si lanciano dalla **cartella del progetto**, come utente normale (mai con `sudo`: la password
+di amministratore la chiedono gli script quando serve). `NOME` è un nome utente del Diario,
+`ID` l'inizio dell'id di una nota (quello dopo `?id=` nell'indirizzo della nota).
 
-Tutti gli altri, compresa la gestione degli utenti da riga di comando, in
-[docs/amministrazione.md](docs/amministrazione.md).
+**Installazione e manutenzione**
+
+```bash
+scripts/setup.sh                          # prima installazione; ripetibile
+scripts/prepara-ai.sh                     # librerie per la scheda video (NVIDIA, AMD o CPU), Ollama,
+                                          #   scelta e download dei modelli, voci, diagnosi.
+                                          #   Da rilanciare dopo un cambio di scheda video
+scripts/aggiorna.sh                       # dopo un aggiornamento del codice: librerie, interfaccia,
+                                          #   copia del database, migrazioni, riavvio dei servizi
+scripts/installa-servizio.sh              # avvio automatico all'accensione (servizi diario e diario-worker)
+scripts/installa-servizio.sh --rimuovi    # toglie l'avvio automatico
+scripts/start.sh                          # servizio in primo piano, senza avvio automatico (Ctrl+C)
+scripts/worker.sh                         # elaborazione in primo piano (Ctrl+C)
+scripts/test.sh                           # test automatici su un database temporaneo; -k PAROLA per filtrarli
+```
+
+**Servizi e log**
+
+```bash
+systemctl --user status diario diario-worker     # stanno girando?
+systemctl --user restart diario-worker           # riavvia l'elaborazione (es. dopo aver cambiato .env)
+journalctl --user -u diario-worker -f            # log dell'elaborazione in diretta (-u diario: servizio web)
+```
+
+**Telefono (Tailscale)**
+
+```bash
+scripts/telefono.sh                # configura e verifica; ripetibile
+scripts/telefono.sh --stato        # indirizzo e stato, senza cambiare nulla
+scripts/telefono.sh --disattiva    # smette di pubblicare il Diario su Tailscale
+```
+
+**Backup**
+
+```bash
+scripts/backup.sh                  # database + audio in data/backup/diario-completo-AAAAMMGG-HHMMSS.tar.gz
+scripts/backup.sh /media/disco     # la copia va in un'altra cartella (es. un disco esterno)
+scripts/ripristina.sh FILE.tar.gz  # SOSTITUISCE database e audio (prima salva comunque quelli attuali)
+```
+
+**Rielaborare le note** (il worker le rifà una alla volta: lo stato si vede nell'archivio)
+
+```bash
+scripts/rianalizza.sh                       # tutte: appunti, temi e voci da capo (dopo un aggiornamento)
+scripts/rianalizza.sh --nota ID [ID…]       # solo queste note
+scripts/rianalizza.sh --nota ID --voci --persone 3   # riconosce di nuovo chi parla, sapendo che sono 3
+scripts/rianalizza.sh --ritrascrivi         # rifà anche la trascrizione dall'audio originale
+                                            #   (+ --anche-corrette: anche quelle corrette a mano)
+scripts/ricolloca.sh                        # rifà solo la collocazione nella mappa dei temi
+scripts/ricolloca.sh --nota ID              # una nota sola
+scripts/ricolloca.sh --riordina             # riordina subito la mappa
+# con più persone o diari, a tutti si aggiunge:  --utente NOME  --diario "Nome diario"
+```
+
+**Modelli e diagnosi** — dalla cartella `backend/`:
+
+```bash
+cd backend
+../.venv/bin/python -m app.cli diagnosi                  # controlla GPU, modelli, Ollama, voci, worker
+../.venv/bin/python -m app.cli diagnosi --veloce         # stessa cosa senza caricare i modelli
+../.venv/bin/python -m app.cli scegli-modello            # prova i candidati e scrive in .env il migliore
+../.venv/bin/python -m app.cli scegli-modello --modello ministral-3:14b   # prova solo questo
+../.venv/bin/python -m app.cli prepara-modelli           # scarica i modelli di trascrizione, analisi ed embedding
+../.venv/bin/python -m app.cli riprova-errori NOME       # rimette in coda le note ferme per errore
+```
+
+Per fissare a mano il modello di analisi: in `.env` `OLLAMA_MODEL=nome-modello` e
+`OLLAMA_MODEL_FISSO=1`, poi `ollama pull nome-modello` e riavvio di `diario-worker`.
+
+**Persone e diari** — dalla cartella `backend/` (le stesse cose si fanno da scaffale → *Persone*):
+
+```bash
+cd backend
+../.venv/bin/python -m app.cli utenti                            # chi c'è, ruolo, ultimo accesso
+../.venv/bin/python -m app.cli invito --nota "per Marta" --giorni 7   # codice d'invito monouso
+../.venv/bin/python -m app.cli create-user NOME [--admin]        # account senza invito
+../.venv/bin/python -m app.cli create-user NOME --reset          # cambia la password
+../.venv/bin/python -m app.cli password-provvisoria NOME         # da cambiare al primo accesso
+../.venv/bin/python -m app.cli disattiva NOME                    # blocca l'account (riattiva NOME per riammetterlo)
+../.venv/bin/python -m app.cli rendi-admin NOME [--togli]        # dà o toglie il ruolo di amministratore
+../.venv/bin/python -m app.cli diari NOME                        # i diari di una persona, con gli id
+../.venv/bin/python -m app.cli elimina-utente NOME               # account, diari e audio (chiede conferma)
+../.venv/bin/python -m app.cli create-token NOME "comandi-rapidi"   # token per le API (script, Comandi Rapidi)
+../.venv/bin/python -m app.cli verify-storage NOME               # ricalcola le impronte degli audio originali
+../.venv/bin/python -m app.cli cleanup-uploads NOME              # elimina i caricamenti interrotti e scaduti
+```
+
+Spiegazioni e casi particolari in [docs/amministrazione.md](docs/amministrazione.md).
 
 ## Dove stanno i dati
 

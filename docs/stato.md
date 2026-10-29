@@ -31,7 +31,7 @@ Verificato sul PC e su iPhone: registrazione e invio funzionano anche fuori casa
   audio, trascrizione che si riascolta toccando una frase), ricerca con parole evidenziate che apre l'audio nel
   punto giusto. In pausa, **tenere premuto Elimina per 2 secondi** cancella la registrazione dal telefono.
 - **Script**: `aggiorna.sh` (applica un aggiornamento: librerie, interfaccia, database, servizi),
-  `prepara-ai.sh` (librerie CUDA, Ollama, scelta e download dei modelli, diagnosi), `worker.sh`,
+  `prepara-ai.sh` (librerie per NVIDIA/CUDA o AMD/ROCm, Ollama, scelta e download dei modelli, diagnosi), `worker.sh`,
   servizio `diario-worker`, comandi `diagnosi`, `prepara-modelli`, `riprova-errori`. Le migrazioni si applicano
   da sole all'avvio.
 
@@ -126,8 +126,8 @@ non scaricabile senza consumare tentativi, registra il battito, si ferma pulito 
   daltonismo e contrasto su carta e in modalità scura.
 - **Rianalisi**: `scripts/rianalizza.sh` (tutte, da capo, con le voci) o `--nota ID`; nessuna nuova trascrizione.
 - **Memoria**: contesto dell'analisi 8192 token, Ollama con contesto compresso (q8_0) e un modello alla volta;
-  `cli scegli-modello` prova i candidati e tiene il migliore che sta tutto nella scheda video (con 8 GB: qwen3.5:9b,
-  poi gemma4:e4b, poi qwen3:8b). La diagnosi dice se il modello finisce in parte nella RAM.
+  `cli scegli-modello` prova i candidati e tiene il migliore che sta tutto nella scheda video, Mistral per primi
+  (con 16 GB: ministral-3:14b, poi gemma4:12b, poi qwen3.5:9b; con 8 GB: ministral-3:8b, poi qwen3.5:9b). La diagnosi dice se il modello finisce in parte nella RAM.
 - **Test**: 105 automatici (10 nuovi), build dell'interfaccia, controllo visivo della mappa a schermo di telefono.
 
 ## Domande sull'archivio e ricerca (21 ottobre, notte)

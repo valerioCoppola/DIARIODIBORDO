@@ -53,7 +53,7 @@ class Settings(BaseSettings):
     # pipeline/transcribe.py): large-v3 se la memoria video basta, altrimenti
     # large-v3-turbo; senza GPU large-v3-turbo su CPU.
     whisper_model: str = "auto"
-    whisper_device: str = "auto"                 # auto | cuda | cpu
+    whisper_device: str = "auto"                 # auto | cuda (NVIDIA o AMD) | cpu
     whisper_compute_type: str = "auto"           # auto | float16 | int8_float16 | int8
     whisper_language: str = "it"                 # "auto" per riconoscerla
     whisper_beam_size: int = 5
@@ -66,7 +66,7 @@ class Settings(BaseSettings):
 
     # Analisi e embedding con Ollama, solo su localhost.
     ollama_url: str = "http://127.0.0.1:11434"
-    ollama_model: str = "qwen3.5:9b"   # scelto da `cli scegli-modello`
+    ollama_model: str = "ministral-3:8b"   # scelto da `cli scegli-modello`
     ollama_embed_model: str = "bge-m3"
     ollama_timeout_seconds: float = 900.0
     ollama_keep_alive: str = "5m"

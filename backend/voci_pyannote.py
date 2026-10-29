@@ -12,6 +12,11 @@ esce e restituisce tutta la memoria (scheda video compresa).
 
 Stampa su stdout un JSON: {"turni": [[inizio, fine, "SPEAKER_00"], ...], "dispositivo": "cuda"}.
 Nessun dato lascia il PC: niente telemetria, Hugging Face in modalità offline.
+
+Scheda video: torch per CUDA (NVIDIA) o per ROCm (AMD); in entrambi i casi il
+dispositivo si chiama "cuda". Con ROCm l'LSTM di pyannote passa da MIOpen, che
+sulle Radeon recenti (RDNA4) fallisce con miopenStatusUnknownError: lì torch usa
+la propria implementazione, sempre sulla scheda video.
 """
 
 from __future__ import annotations
@@ -23,6 +28,36 @@ import sys
 import time
 
 REPO = "pyannote/speaker-diarization-community-1"
+
+
+def prepara_torch():
+    import torch
+
+    if torch.version.hip:
+        torch.backends.cudnn.enabled = False   # su ROCm è MIOpen: vedi sopra
+    return torch
+
+
+def motore(torch) -> str:
+    return "ROCm" if torch.version.hip else "CUDA" if torch.version.cuda else "CPU"
+
+
+def prova_gpu(torch) -> str | None:
+    """L'LSTM di pyannote (stessa forma) su un lotto piccolo, il caso che con MIOpen fallisce.
+
+    None se la scheda video funziona.
+    """
+    if not torch.cuda.is_available():
+        return None
+    try:
+        lstm = torch.nn.LSTM(60, 128, num_layers=4, batch_first=True, dropout=0.5, bidirectional=True)
+        lstm = lstm.to("cuda").eval()
+        with torch.inference_mode():
+            lstm(torch.zeros(2, 16, 60, device="cuda"))
+        torch.cuda.synchronize()
+        return None
+    except Exception as e:
+        return f"{type(e).__name__}: {e}"[:200]
 
 
 def scarica(dest: str) -> None:
@@ -40,8 +75,9 @@ def scarica(dest: str) -> None:
 
 def diarizza(audio: str, sr: int, modello: str, persone: int | None) -> None:
     import numpy as np
-    import torch
     from pyannote.audio import Pipeline
+
+    torch = prepara_torch()
 
     try:
         from pyannote.audio.telemetry import set_telemetry_metrics
@@ -98,10 +134,11 @@ def main() -> None:
         return
     os.environ["HF_HUB_OFFLINE"] = "1"
     if a.verifica:
-        import torch
         import pyannote.audio  # noqa: F401
 
-        print(json.dumps({"torch": torch.__version__, "cuda": torch.cuda.is_available()}))
+        torch = prepara_torch()
+        print(json.dumps({"torch": torch.__version__, "cuda": torch.cuda.is_available(), "motore": motore(torch),
+                          "errore_gpu": prova_gpu(torch)}))
         return
     if not (a.audio and a.modello):
         p.error("servono --audio e --modello")
